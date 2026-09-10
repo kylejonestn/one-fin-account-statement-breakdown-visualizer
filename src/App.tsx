@@ -4,11 +4,14 @@ import { driveService } from './services/googleDriveService';
 import type { AppData } from './services/googleDriveService';
 import { AppProvider } from './context/AppContext';
 import { Dashboard } from './components/Dashboard';
+import { SettingsModal } from './components/SettingsModal';
+import { Settings } from 'lucide-react';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [initialData, setInitialData] = useState<AppData | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -87,7 +90,7 @@ function App() {
 
   return (
     <AppProvider initialData={initialData}>
-      <div className="min-h-screen bg-[#f4f7f6] flex flex-col font-sans">
+      <div className="min-h-screen bg-[#f4f7f6] flex flex-col font-sans relative">
         <nav className="bg-white px-8 flex justify-between items-center z-10 border-b-4 border-blue-500 h-16">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full border-2 border-blue-500 flex items-center justify-center">
@@ -100,6 +103,12 @@ function App() {
             <button className="text-sm font-semibold text-gray-500 hover:text-gray-800 uppercase tracking-wider">Activity</button>
             <button className="text-sm font-semibold text-gray-400 hover:text-gray-800 uppercase tracking-wider">Goals</button>
             <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="text-gray-400 hover:text-teal-500 transition-colors"
+            >
+              <Settings size={20} />
+            </button>
+            <button 
               onClick={handleLogout}
               className="ml-4 text-sm text-gray-400 hover:text-gray-600 font-medium"
             >
@@ -111,6 +120,8 @@ function App() {
         <main className="p-8 flex-1 w-full mx-auto">
           <Dashboard />
         </main>
+
+        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       </div>
     </AppProvider>
   );
