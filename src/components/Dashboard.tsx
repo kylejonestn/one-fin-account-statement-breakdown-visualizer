@@ -16,28 +16,6 @@ export const Dashboard: React.FC = () => {
 
   const [hideTransfers, setHideTransfers] = useState(true);
 
-  const spendingByAccount = useMemo(() => {
-    const spending: Record<string, number> = {};
-    let total = 0;
-    
-    transactions.forEach(tx => {
-      if (tx.amount < 0 && !tx.description.toLowerCase().includes('internal transfer')) {
-        const acc = tx.account || 'Uncategorized';
-        // Clean up account names like "AK Groceries" to "Groceries" for cleaner UI
-        const cleanAcc = acc.replace(/^AK\s+/i, '');
-        const amount = Math.abs(tx.amount);
-        spending[cleanAcc] = (spending[cleanAcc] || 0) + amount;
-        total += amount;
-      }
-    });
-
-    const topCategories = Object.entries(spending)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4); // Get top 4 spending categories
-
-    return { topCategories, total };
-  }, [transactions]);
-
   const filteredTransactions = useMemo(() => {
     let result = transactions;
     
@@ -62,6 +40,28 @@ export const Dashboard: React.FC = () => {
       return dateB - dateA;
     });
   }, [transactions, searchTerm, hideTransfers]);
+
+  const spendingByAccount = useMemo(() => {
+    const spending: Record<string, number> = {};
+    let total = 0;
+    
+    filteredTransactions.forEach(tx => {
+      if (tx.amount < 0 && !tx.description.toLowerCase().includes('internal transfer')) {
+        const acc = tx.account || 'Uncategorized';
+        // Clean up account names like "AK Groceries" to "Groceries" for cleaner UI
+        const cleanAcc = acc.replace(/^AK\s+/i, '');
+        const amount = Math.abs(tx.amount);
+        spending[cleanAcc] = (spending[cleanAcc] || 0) + amount;
+        total += amount;
+      }
+    });
+
+    const topCategories = Object.entries(spending)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4); // Get top 4 spending categories
+
+    return { topCategories, total };
+  }, [filteredTransactions]);
 
   const processFile = async (file: File) => {
     setIsParsing(true);
@@ -256,9 +256,18 @@ export const Dashboard: React.FC = () => {
                     </span>
                   )}
                   {(tx.tags || []).map((tag: string) => (
-                    <span key={tag} className="text-xs bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-md flex items-center gap-1 group/tag">
+                    <span 
+                      key={tag} 
+                      onClick={() => setSearchTerm(tag)}
+                      className="cursor-pointer hover:bg-teal-100 text-xs bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-md flex items-center gap-1 group/tag transition-colors"
+                    >
                       #{tag}
-                      <button onClick={() => removeTag(tx.id, tx.tags || [], tag)} className="opacity-0 group-hover/tag:opacity-100 hover:text-red-500 transition-opacity">×</button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); removeTag(tx.id, tx.tags || [], tag); }} 
+                        className="opacity-0 group-hover/tag:opacity-100 hover:text-red-500 transition-opacity"
+                      >
+                        ×
+                      </button>
                     </span>
                   ))}
                 </div>
