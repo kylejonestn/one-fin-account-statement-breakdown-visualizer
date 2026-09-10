@@ -1,5 +1,5 @@
 import React, { useRef, useState, useMemo } from 'react';
-import { Upload, Search, Tag, MessageSquare, Plus } from 'lucide-react';
+import { Upload, Search, Tag } from 'lucide-react';
 import { pdfParserService } from '../services/pdfParserService';
 import { useAppContext } from '../context/AppContext';
 import type { ParsedTransaction } from '../services/pdfParserService';
@@ -50,7 +50,7 @@ export const Dashboard: React.FC = () => {
       result = result.filter(t => 
         t.description.toLowerCase().includes(lower) || 
         t.account?.toLowerCase().includes(lower) ||
-        t.tags.some(tag => tag.toLowerCase().includes(lower))
+        t.tags.some((tag: string) => tag.toLowerCase().includes(lower))
       );
     }
 
@@ -226,7 +226,7 @@ export const Dashboard: React.FC = () => {
                       {tx.account}
                     </span>
                   )}
-                  {tx.tags.map(tag => (
+                  {tx.tags.map((tag: string) => (
                     <span key={tag} className="text-xs bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-md flex items-center gap-1 group/tag">
                       #{tag}
                       <button onClick={() => removeTag(tx.id, tx.tags, tag)} className="opacity-0 group-hover/tag:opacity-100 hover:text-red-500 transition-opacity">×</button>
