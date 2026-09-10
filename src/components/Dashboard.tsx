@@ -136,13 +136,49 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleSaveNote = (txId: string) => {
-    updateTx(txId, { note: noteInput.trim() });
+    const noteText = noteInput.trim();
+    
+    // Extract hashtags from note
+    const hashtagRegex = /#([\w-]+)/g;
+    const extractedTags: string[] = [];
+    let match;
+    while ((match = hashtagRegex.exec(noteText)) !== null) {
+      extractedTags.push(match[1].toLowerCase());
+    }
+
+    const tx = transactions.find(t => t.id === txId);
+    let newTags = [...(tx?.tags || [])];
+    extractedTags.forEach(tag => {
+      if (!newTags.includes(tag)) newTags.push(tag);
+    });
+
+    updateTx(txId, { note: noteText, tags: newTags });
     setNotingTxId(null);
     setNoteInput('');
   };
 
   const removeTag = (txId: string, currentTags: string[], tagToRemove: string) => {
     updateTx(txId, { tags: currentTags.filter(t => t !== tagToRemove) });
+  };
+
+  // Check if user is currently typing a hashtag in the note input
+  const noteTagMatch = noteInput.match(/#([\w-]*)$/);
+  const isTypingNoteTag = noteTagMatch !== null;
+  const noteTagSearch = isTypingNoteTag ? noteTagMatch[1].toLowerCase() : '';
+
+  const noteTagSuggestions = useMemo(() => {
+    if (!isTypingNoteTag) return [];
+    const suggestions = Object.entries(tagFrequencies)
+      .filter(([tag]) => tag.includes(noteTagSearch))
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag);
+    return suggestions.slice(0, 5);
+  }, [isTypingNoteTag, noteTagSearch, tagFrequencies]);
+
+  const handleSelectNoteTag = (suggestion: string) => {
+    // Replace the currently typed partial hashtag with the full suggestion
+    const updatedNote = noteInput.replace(/#([\w-]*)$/, `#${suggestion} `);
+    setNoteInput(updatedNote);
   };
 
   return (
@@ -264,7 +300,7 @@ export const Dashboard: React.FC = () => {
                       #{tag}
                       <button 
                         onClick={(e) => { e.stopPropagation(); removeTag(tx.id, tx.tags || [], tag); }} 
-                        className="opacity-0 group-hover/tag:opacity-100 hover:text-red-500 transition-opacity"
+                        className="opacity-100 md:opacity-0 md:group-hover/tag:opacity-100 hover:text-red-500 transition-opacity ml-1"
                       >
                         ×
                       </button>
@@ -278,7 +314,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                 )}
                 
-                <div className={`mt-2 flex items-center gap-3 transition-opacity ${(taggingTxId === tx.id || notingTxId === tx.id || tx.note) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                <div className={`mt-2 flex flex-wrap items-center gap-3 transition-opacity ${(taggingTxId === tx.id || notingTxId === tx.id || tx.note || (tx.tags && tx.tags.length > 0)) ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
                   {taggingTxId === tx.id ? (
                     <div className="relative flex items-center gap-2">
                       <input 
@@ -287,7 +323,10 @@ export const Dashboard: React.FC = () => {
                         value={tagInput}
                         onChange={e => setTagInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleAddTag(tx.id, tx.tags || []); if (e.key === 'Escape') setTaggingTxId(null); }}
-                        onBlur={() => handleAddTag(tx.id, tx.tags || [])}
+                        onBlur={() => {
+                          // Slight delay to allow suggestion click to register before blur unmounts it
+                          setTimeout(() => handleAddTag(tx.id, tx.tags || []), 150);
+                        }}
                         placeholder="Type tag (e.g. personal)"
                         className="text-xs px-2 py-1 border border-teal-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500 w-32"
                       />
@@ -297,7 +336,7 @@ export const Dashboard: React.FC = () => {
                             <button
                               key={suggestion}
                               onMouseDown={(e) => {
-                                e.preventDefault(); // Prevent blur from firing handleAddTag prematurely
+                                e.preventDefault();
                                 handleAddTag(tx.id, tx.tags || [], suggestion);
                               }}
                               className="w-full text-left px-3 py-1.5 text-xs hover:bg-teal-50 text-gray-700"
@@ -318,17 +357,35 @@ export const Dashboard: React.FC = () => {
                   )}
 
                   {notingTxId === tx.id ? (
-                     <div className="flex items-center gap-2 flex-1 max-w-sm">
+                     <div className="relative flex items-center gap-2 flex-1 max-w-sm">
                        <input 
                          autoFocus
                          type="text" 
                          value={noteInput}
                          onChange={e => setNoteInput(e.target.value)}
                          onKeyDown={e => { if (e.key === 'Enter') handleSaveNote(tx.id); if (e.key === 'Escape') setNotingTxId(null); }}
-                         onBlur={() => handleSaveNote(tx.id)}
-                         placeholder="Add a memo or note..."
+                         onBlur={() => {
+                           setTimeout(() => handleSaveNote(tx.id), 150);
+                         }}
+                         placeholder="Add a memo or note... type # to tag"
                          className="text-xs px-2 py-1 border border-teal-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500 w-full"
                        />
+                       {noteTagSuggestions.length > 0 && (
+                        <div className="absolute top-full mt-1 left-0 min-w-[120px] bg-white border border-teal-200 rounded-md shadow-lg z-10 overflow-hidden">
+                          {noteTagSuggestions.map(suggestion => (
+                            <button
+                              key={suggestion}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleSelectNoteTag(suggestion);
+                              }}
+                              className="w-full text-left px-3 py-1.5 text-xs hover:bg-teal-50 text-gray-700"
+                            >
+                              #{suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                      </div>
                   ) : (
                     <button 
