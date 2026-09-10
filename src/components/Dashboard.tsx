@@ -101,11 +101,31 @@ export const Dashboard: React.FC = () => {
   const [taggingTxId, setTaggingTxId] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState('');
 
-  const handleAddTag = (txId: string, currentTags: string[]) => {
-    if (tagInput.trim()) {
-      const newTag = tagInput.trim().toLowerCase();
-      if (!currentTags.includes(newTag)) {
-        updateTx(txId, { tags: [...currentTags, newTag] });
+  const tagFrequencies = useMemo(() => {
+    const freqs: Record<string, number> = {};
+    transactions.forEach(tx => {
+      (tx.tags || []).forEach((tag: string) => {
+        freqs[tag] = (freqs[tag] || 0) + 1;
+      });
+    });
+    return freqs;
+  }, [transactions]);
+
+  const tagSuggestions = useMemo(() => {
+    if (!tagInput) return [];
+    const lowerInput = tagInput.toLowerCase();
+    const suggestions = Object.entries(tagFrequencies)
+      .filter(([tag]) => tag.includes(lowerInput))
+      .sort((a, b) => b[1] - a[1]) // Sort by frequency descending
+      .map(([tag]) => tag);
+    return suggestions.slice(0, 5); // Max 5 suggestions
+  }, [tagInput, tagFrequencies]);
+
+  const handleAddTag = (txId: string, currentTags: string[], explicitTag?: string) => {
+    const tagToAdd = (explicitTag || tagInput).trim().toLowerCase();
+    if (tagToAdd) {
+      if (!currentTags.includes(tagToAdd)) {
+        updateTx(txId, { tags: [...currentTags, tagToAdd] });
       }
     }
     setTaggingTxId(null);
@@ -236,7 +256,7 @@ export const Dashboard: React.FC = () => {
                 
                 <div className={`mt-2 flex items-center gap-3 transition-opacity ${taggingTxId === tx.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                   {taggingTxId === tx.id ? (
-                    <div className="flex items-center gap-2">
+                    <div className="relative flex items-center gap-2">
                       <input 
                         autoFocus
                         type="text" 
@@ -247,6 +267,22 @@ export const Dashboard: React.FC = () => {
                         placeholder="Type tag (e.g. personal)"
                         className="text-xs px-2 py-1 border border-teal-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500 w-32"
                       />
+                      {tagSuggestions.length > 0 && (
+                        <div className="absolute top-full mt-1 left-0 w-full bg-white border border-teal-200 rounded-md shadow-lg z-10 overflow-hidden">
+                          {tagSuggestions.map(suggestion => (
+                            <button
+                              key={suggestion}
+                              onMouseDown={(e) => {
+                                e.preventDefault(); // Prevent blur from firing handleAddTag prematurely
+                                handleAddTag(tx.id, tx.tags || [], suggestion);
+                              }}
+                              className="w-full text-left px-3 py-1.5 text-xs hover:bg-teal-50 text-gray-700"
+                            >
+                              #{suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <button 
