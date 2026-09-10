@@ -1,5 +1,5 @@
 import React, { useRef, useState, useMemo } from 'react';
-import { Upload, Search, Tag } from 'lucide-react';
+import { Upload, Search, Tag, MessageSquare } from 'lucide-react';
 import { pdfParserService } from '../services/pdfParserService';
 import { useAppContext } from '../context/AppContext';
 import type { ParsedTransaction } from '../services/pdfParserService';
@@ -50,6 +50,7 @@ export const Dashboard: React.FC = () => {
       result = result.filter(t => 
         t.description.toLowerCase().includes(lower) || 
         t.account?.toLowerCase().includes(lower) ||
+        (t.note || '').toLowerCase().includes(lower) ||
         (t.tags || []).some((tag: string) => tag.toLowerCase().includes(lower))
       );
     }
@@ -100,6 +101,8 @@ export const Dashboard: React.FC = () => {
 
   const [taggingTxId, setTaggingTxId] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState('');
+  const [notingTxId, setNotingTxId] = useState<string | null>(null);
+  const [noteInput, setNoteInput] = useState('');
 
   const tagFrequencies = useMemo(() => {
     const freqs: Record<string, number> = {};
@@ -130,6 +133,12 @@ export const Dashboard: React.FC = () => {
     }
     setTaggingTxId(null);
     setTagInput('');
+  };
+
+  const handleSaveNote = (txId: string) => {
+    updateTx(txId, { note: noteInput.trim() });
+    setNotingTxId(null);
+    setNoteInput('');
   };
 
   const removeTag = (txId: string, currentTags: string[], tagToRemove: string) => {
@@ -191,7 +200,7 @@ export const Dashboard: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               type="text" 
-              placeholder="Search activities, tags, accounts..." 
+              placeholder="Search activities, tags, accounts, notes..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all"
@@ -232,7 +241,7 @@ export const Dashboard: React.FC = () => {
         </div>
         
         <div className="divide-y divide-gray-100">
-          {filteredTransactions.map((tx) => (
+          {filteredTransactions.map((tx: any) => (
             <div key={tx.id} className="p-4 hover:bg-gray-50 transition-colors group flex items-start">
               <div className="w-24 pt-1">
                 <span className="font-medium text-gray-700">{tx.date}</span>
@@ -254,7 +263,13 @@ export const Dashboard: React.FC = () => {
                   ))}
                 </div>
                 
-                <div className={`mt-2 flex items-center gap-3 transition-opacity ${taggingTxId === tx.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                {tx.note && notingTxId !== tx.id && (
+                  <div className="text-sm text-gray-500 mt-1 mb-2 italic">
+                    {tx.note}
+                  </div>
+                )}
+                
+                <div className={`mt-2 flex items-center gap-3 transition-opacity ${(taggingTxId === tx.id || notingTxId === tx.id || tx.note) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                   {taggingTxId === tx.id ? (
                     <div className="relative flex items-center gap-2">
                       <input 
@@ -290,6 +305,28 @@ export const Dashboard: React.FC = () => {
                       className="flex items-center gap-1 text-xs text-gray-400 hover:text-teal-500 transition-colors"
                     >
                       <Tag size={14} /> Add Tag
+                    </button>
+                  )}
+
+                  {notingTxId === tx.id ? (
+                     <div className="flex items-center gap-2 flex-1 max-w-sm">
+                       <input 
+                         autoFocus
+                         type="text" 
+                         value={noteInput}
+                         onChange={e => setNoteInput(e.target.value)}
+                         onKeyDown={e => { if (e.key === 'Enter') handleSaveNote(tx.id); if (e.key === 'Escape') setNotingTxId(null); }}
+                         onBlur={() => handleSaveNote(tx.id)}
+                         placeholder="Add a memo or note..."
+                         className="text-xs px-2 py-1 border border-teal-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500 w-full"
+                       />
+                     </div>
+                  ) : (
+                    <button 
+                      onClick={() => { setNotingTxId(tx.id); setNoteInput(tx.note || ''); }}
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-teal-500 transition-colors"
+                    >
+                      <MessageSquare size={14} /> {tx.note ? 'Edit Note' : 'Add Note'}
                     </button>
                   )}
                 </div>

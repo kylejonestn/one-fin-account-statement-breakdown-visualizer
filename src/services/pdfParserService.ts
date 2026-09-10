@@ -10,7 +10,7 @@ export interface ParsedTransaction {
   type: 'credit' | 'debit';
   category: string;
   tags: string[];
-  comments: string;
+  note?: string;
   account?: string;
 }
 
@@ -97,7 +97,7 @@ export class PdfParserService {
           type: amount < 0 ? 'debit' : 'credit',
           category: 'Uncategorized',
           tags: [],
-          comments: '',
+          note: '',
           account: currentAccount
         });
       }
