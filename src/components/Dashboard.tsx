@@ -50,7 +50,7 @@ export const Dashboard: React.FC = () => {
       result = result.filter(t => 
         t.description.toLowerCase().includes(lower) || 
         t.account?.toLowerCase().includes(lower) ||
-        t.tags.some((tag: string) => tag.toLowerCase().includes(lower))
+        (t.tags || []).some((tag: string) => tag.toLowerCase().includes(lower))
       );
     }
 
@@ -226,10 +226,10 @@ export const Dashboard: React.FC = () => {
                       {tx.account}
                     </span>
                   )}
-                  {tx.tags.map((tag: string) => (
+                  {(tx.tags || []).map((tag: string) => (
                     <span key={tag} className="text-xs bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-md flex items-center gap-1 group/tag">
                       #{tag}
-                      <button onClick={() => removeTag(tx.id, tx.tags, tag)} className="opacity-0 group-hover/tag:opacity-100 hover:text-red-500 transition-opacity">×</button>
+                      <button onClick={() => removeTag(tx.id, tx.tags || [], tag)} className="opacity-0 group-hover/tag:opacity-100 hover:text-red-500 transition-opacity">×</button>
                     </span>
                   ))}
                 </div>
@@ -242,8 +242,8 @@ export const Dashboard: React.FC = () => {
                         type="text" 
                         value={tagInput}
                         onChange={e => setTagInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleAddTag(tx.id, tx.tags); if (e.key === 'Escape') setTaggingTxId(null); }}
-                        onBlur={() => handleAddTag(tx.id, tx.tags)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleAddTag(tx.id, tx.tags || []); if (e.key === 'Escape') setTaggingTxId(null); }}
+                        onBlur={() => handleAddTag(tx.id, tx.tags || [])}
                         placeholder="Type tag (e.g. personal)"
                         className="text-xs px-2 py-1 border border-teal-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500 w-32"
                       />
