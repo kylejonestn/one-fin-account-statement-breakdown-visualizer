@@ -16,6 +16,39 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
     onClose();
   };
 
+  const exportAllToCsv = () => {
+    const transactions = data?.transactions || [];
+    if (transactions.length === 0) {
+      alert("No transactions to export!");
+      return;
+    }
+
+    const headers = ['Date', 'Activity', 'Amount', 'Account', 'Tags', 'Note'];
+    const csvRows = [headers.join(',')];
+
+    for (const tx of transactions) {
+      const row = [
+        `"${tx.date}"`,
+        `"${tx.description.replace(/"/g, '""')}"`,
+        tx.amount.toString(),
+        `"${tx.account || ''}"`,
+        `"${(tx.tags || []).join(', ')}"`,
+        `"${(tx.note || '').replace(/"/g, '""')}"`
+      ];
+      csvRows.push(row.join(','));
+    }
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'finance_export_all.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
@@ -26,7 +59,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
           </button>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-8">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
               <Key size={16} className="text-teal-500" />
@@ -42,6 +75,21 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
               placeholder="AIzaSy..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 focus:outline-none transition-all"
             />
+          </div>
+
+          <div className="pt-6 border-t border-gray-100">
+            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+              Data Management
+            </label>
+            <p className="text-xs text-gray-500 mb-3">
+              Download a complete CSV of all your transactions, tags, and notes.
+            </p>
+            <button 
+              onClick={exportAllToCsv}
+              className="w-full py-2 bg-gray-50 border border-gray-200 hover:border-gray-400 text-gray-700 text-sm font-medium rounded-lg shadow-sm transition-colors"
+            >
+              Export All Data to CSV
+            </button>
           </div>
         </div>
 

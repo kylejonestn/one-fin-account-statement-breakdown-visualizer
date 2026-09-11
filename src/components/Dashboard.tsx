@@ -181,37 +181,7 @@ export const Dashboard: React.FC = () => {
     setNoteInput(updatedNote);
   };
 
-  const exportToCsv = () => {
-    if (filteredTransactions.length === 0) {
-      alert("No transactions to export!");
-      return;
-    }
 
-    const headers = ['Date', 'Activity', 'Amount', 'Account', 'Tags', 'Note'];
-    const csvRows = [headers.join(',')];
-
-    for (const tx of filteredTransactions) {
-      const row = [
-        `"${tx.date}"`,
-        `"${tx.description.replace(/"/g, '""')}"`,
-        tx.amount.toString(),
-        `"${tx.account || ''}"`,
-        `"${(tx.tags || []).join(', ')}"`,
-        `"${(tx.note || '').replace(/"/g, '""')}"`
-      ];
-      csvRows.push(row.join(','));
-    }
-
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'finance_export.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -288,19 +258,12 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={exportToCsv}
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-gray-400 hover:text-gray-700 text-gray-600 px-4 py-2 rounded-full font-medium transition text-sm"
-            title="Export filtered transactions to CSV"
-          >
-            Export CSV
-          </button>
+        <div>
           <input type="file" accept="application/pdf" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={isParsing}
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-teal-500 hover:text-teal-600 text-gray-600 px-5 py-2 rounded-full font-medium transition disabled:opacity-50 min-w-[200px] justify-center text-sm"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-teal-500 hover:text-teal-600 text-gray-600 px-5 py-2 rounded-full font-medium transition disabled:opacity-50 min-w-[200px] justify-center"
           >
             {isParsing ? <span className="animate-pulse">{progressMsg || 'Parsing...'}</span> : <> <Upload size={18} /> Import PDF </>}
           </button>
