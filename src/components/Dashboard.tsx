@@ -70,6 +70,34 @@ export const Dashboard: React.FC = () => {
     return { topCategories, allCategories, total };
   }, [filteredTransactions]);
 
+  // One-time cleanup for any legacy tags that accidentally have '#' in them
+  React.useEffect(() => {
+    let needsUpdate = false;
+    const cleanedTxs = transactions.map(tx => {
+      if (!tx.tags) return tx;
+      
+      let modified = false;
+      const cleanTags = tx.tags.map((t: string) => {
+        const cleaned = t.replace(/^#+/, '');
+        if (cleaned !== t) modified = true;
+        return cleaned;
+      });
+
+      const uniqueCleanTags = Array.from(new Set(cleanTags));
+      if (uniqueCleanTags.length !== tx.tags.length) modified = true;
+      
+      if (modified) {
+        needsUpdate = true;
+        return { ...tx, tags: uniqueCleanTags };
+      }
+      return tx;
+    });
+
+    if (needsUpdate) {
+      updateTransactions(cleanedTxs);
+    }
+  }, [transactions, updateTransactions]);
+
   const processFile = async (file: File) => {
     setIsParsing(true);
     setProgressMsg('Starting import...');
@@ -132,7 +160,11 @@ export const Dashboard: React.FC = () => {
   }, [tagInput, tagFrequencies]);
 
   const handleAddTag = (txId: string, currentTags: string[], explicitTag?: string) => {
-    const tagToAdd = (explicitTag || tagInput).trim().toLowerCase();
+    let tagToAdd = (explicitTag || tagInput).trim().toLowerCase();
+    
+    // Strip leading hash symbols (if the user typed #family instead of just family)
+    tagToAdd = tagToAdd.replace(/^#+/, '');
+
     if (tagToAdd) {
       if (!currentTags.includes(tagToAdd)) {
         updateTx(txId, { tags: [...currentTags, tagToAdd] });
