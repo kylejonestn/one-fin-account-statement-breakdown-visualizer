@@ -1,8 +1,11 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { Upload, Search, Tag, MessageSquare } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { pdfParserService } from '../services/pdfParserService';
 import { useAppContext } from '../context/AppContext';
 import type { ParsedTransaction } from '../services/pdfParserService';
+
+const CHART_COLORS = ['#14b8a6', '#0ea5e9', '#f59e0b', '#ec4899', '#8b5cf6', '#ef4444', '#10b981', '#64748b'];
 
 export const Dashboard: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,11 +59,15 @@ export const Dashboard: React.FC = () => {
       }
     });
 
+    const allCategories = Object.entries(spending)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, value]) => ({ name, value }));
+
     const topCategories = Object.entries(spending)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 4); // Get top 4 spending categories
 
-    return { topCategories, total };
+    return { topCategories, allCategories, total };
   }, [filteredTransactions]);
 
   const processFile = async (file: File) => {
@@ -185,38 +192,69 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      {/* Mini Dashboard Header */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <div className="flex justify-between items-end mb-6">
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Monthly Spending</h2>
-            <div className="text-3xl font-light text-gray-800 mt-1">${spendingByAccount.total.toFixed(2)}</div>
+      {/* Visual Dashboard Header */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Left Column: Total & Top 4 */}
+        <div className="col-span-1 md:col-span-2 bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col">
+          <div className="flex justify-between items-end mb-6">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Monthly Spending</h2>
+              <div className="text-3xl font-light text-gray-800 mt-1">${spendingByAccount.total.toFixed(2)}</div>
+            </div>
+            <div className="text-sm text-gray-400">Top Categories</div>
           </div>
-          <div className="text-sm text-gray-400">
-            Top Categories
+          
+          <div className="grid grid-cols-2 gap-4 flex-1">
+            {spendingByAccount.topCategories.map(([account, amount]) => {
+              const percentage = spendingByAccount.total > 0 ? (amount / spendingByAccount.total) * 100 : 0;
+              return (
+                <div key={account} className="bg-gray-50 p-4 rounded-lg border border-gray-100 flex flex-col justify-center">
+                  <div className="text-sm font-medium text-gray-700 truncate" title={account}>{account}</div>
+                  <div className="text-lg font-semibold text-red-500 mt-1">${amount.toFixed(2)}</div>
+                  <div className="w-full bg-gray-200 h-1.5 rounded-full mt-3 overflow-hidden">
+                    <div className="bg-red-400 h-full rounded-full" style={{ width: `${Math.min(percentage, 100)}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+            {spendingByAccount.topCategories.length === 0 && (
+              <div className="col-span-full flex items-center justify-center text-sm text-gray-400 h-full">
+                No spending data available yet. Import your transactions!
+              </div>
+            )}
           </div>
         </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {spendingByAccount.topCategories.map(([account, amount]) => {
-            const percentage = spendingByAccount.total > 0 ? (amount / spendingByAccount.total) * 100 : 0;
-            return (
-              <div key={account} className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <div className="text-sm font-medium text-gray-700 truncate" title={account}>{account}</div>
-                <div className="text-lg font-semibold text-red-500 mt-1">${amount.toFixed(2)}</div>
-                <div className="w-full bg-gray-200 h-1.5 rounded-full mt-3 overflow-hidden">
-                  <div 
-                    className="bg-red-400 h-full rounded-full" 
-                    style={{ width: `${Math.min(percentage, 100)}%` }} 
+
+        {/* Right Column: Donut Chart */}
+        <div className="col-span-1 bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center min-h-[250px]">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider w-full mb-4 text-center">Spending Breakdown</h2>
+          {spendingByAccount.allCategories.length > 0 ? (
+            <div className="w-full h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={spendingByAccount.allCategories}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {spendingByAccount.allCategories.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: any) => `$${Number(value).toFixed(2)}`}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   />
-                </div>
-              </div>
-            );
-          })}
-          {spendingByAccount.topCategories.length === 0 && (
-            <div className="col-span-full text-center text-sm text-gray-400 py-4">
-              No spending data available yet. Import your transactions!
+                </PieChart>
+              </ResponsiveContainer>
             </div>
+          ) : (
+            <div className="text-sm text-gray-400 text-center">No data for chart</div>
           )}
         </div>
       </div>

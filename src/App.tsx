@@ -101,7 +101,7 @@ function App() {
           
           <div className="flex items-center gap-6">
             <button className="text-sm font-semibold text-gray-500 hover:text-gray-800 uppercase tracking-wider">Activity</button>
-            <button className="text-sm font-semibold text-gray-400 hover:text-gray-800 uppercase tracking-wider">Goals</button>
+            <button className="text-sm font-semibold text-gray-400 hover:text-gray-800 uppercase tracking-wider">Tags</button>
             <button 
               onClick={() => setIsSettingsOpen(true)}
               className="text-gray-400 hover:text-teal-500 transition-colors"
